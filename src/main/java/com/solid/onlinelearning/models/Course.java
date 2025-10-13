@@ -1,8 +1,12 @@
 package com.solid.onlinelearning.models;
 
+import com.solid.onlinelearning.interfaces.Prototype;
 import java.util.UUID;
 
-public class Course {
+/**
+ * Course — модель курса, реализует паттерн Prototype для клонирования.
+ */
+public class Course implements Prototype {
     private String id;
     private String title;
     private String description;
@@ -17,46 +21,21 @@ public class Course {
         this.instructorId = instructorId;
     }
 
-    // --- Getters ---
-    public String getId() {
-        return id;
+    // Реализация метода clone() для клонирования курса
+    @Override
+    public Prototype clone() {
+        return new Course(this.title, this.description, this.price, this.instructorId);
     }
 
-    public String getTitle() {
-        return title;
-    }
+    // --- Getters and Setters ---
+    public String getId() { return id; }
+    public String getTitle() { return title; }
+    public String getDescription() { return description; }
+    public double getPrice() { return price; }
+    public String getInstructorId() { return instructorId; }
 
-    public String getDescription() {
-        return description;
-    }
-
-    public double getPrice() {
-        return price;
-    }
-
-    public String getInstructorId() {
-        return instructorId;
-    }
-
-    // --- Setters ---
-    public void setTitle(String title) {
-        this.title = title;
-    }
-
-    public void setDescription(String description) {
-        this.description = description;
-    }
-
+    // Метод для установки новых значений после клонирования (например, цена)
     public void setPrice(double price) {
         this.price = price;
-    }
-
-    public void setInstructorId(String instructorId) {
-        this.instructorId = instructorId;
-    }
-
-    @Override
-    public String toString() {
-        return String.format("Course: %s (%.2f USD)", title, price);
     }
 }

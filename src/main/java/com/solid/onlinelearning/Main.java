@@ -1,44 +1,31 @@
 package com.solid.onlinelearning;
 
-import com.solid.onlinelearning.interfaces.*;
 import com.solid.onlinelearning.models.*;
-import com.solid.onlinelearning.repository.*;
 import com.solid.onlinelearning.services.*;
 import com.solid.onlinelearning.utils.Logger;
 
 public class Main {
     public static void main(String[] args) {
 
-        // 1️⃣ — Создание зависимостей (интерфейсы + реализации)
+        // 1️⃣ — Создание исходного курса с использованием Builder
+        CourseBuilder builder = new CourseBuilder();
+        Course javaCourse = builder.setTitle("Java Fundamentals")
+                .setDescription("Learn Java from scratch")
+                .setPrice(100.0)
+                .setInstructorId("instructor1")
+                .build();
 
-        // Используем фабрику для создания платёжного процессора
-        PaymentProcessor paymentProcessor = PaymentProcessorFactory.createPaymentProcessor("PayPal");
+        // Логирование с использованием Singleton
+        LoggerSingleton logger = LoggerSingleton.getInstance();
+        logger.log("Course created: " + javaCourse.getTitle());
 
-        // Используем фабрику для создания стратегии скидки
-        DiscountPolicy discountPolicy = new DiscountPolicyFactoryImpl().createDiscountPolicy("Student");
+        // 2️⃣ — Клонирование курса с использованием Prototype
+        CoursePrototype coursePrototype = new CoursePrototype();
+        Course clonedCourse = coursePrototype.cloneCourse(javaCourse);
+        clonedCourse.setPrice(120.0);  // Изменение цены для клона
 
-        // Создание сервисов
-        CourseRepository courseRepo = new InMemoryCourseRepository();
-        NotificationService notificationService = new NotificationServiceImpl();
-
-        CourseService courseService = new CourseService(courseRepo);
-        EnrollmentService enrollmentService = new EnrollmentService(
-                courseRepo,
-                paymentProcessor,
-                notificationService,
-                discountPolicy
-        );
-
-        // 2️⃣ — Создание сущностей
-        Instructor instructor = new Instructor("Dr. Smith", "smith@edu.com");
-        Course javaCourse = new Course("Java Fundamentals", "Learn Java from zero", 100.0, instructor.getId());
-        Student student = new Student("Alice Johnson", "alice@mail.com");
-
-        // 3️⃣ — Добавление курса
-        courseService.addCourse(javaCourse);
-        Logger.info("Available courses: " + courseService.getAllCourses().size());
-
-        // 4️⃣ — Зачисление студента
-        enrollmentService.enrollStudent(student, javaCourse);
+        // Логирование для исходного и клонированного курса
+        logger.log("Original Course Price: " + javaCourse.getPrice());  // 100.0
+        logger.log("Cloned Course Price: " + clonedCourse.getPrice());  // 120.0
     }
 }
