@@ -10,12 +10,17 @@ public class Main {
     public static void main(String[] args) {
 
         // 1️⃣ — Создание зависимостей (интерфейсы + реализации)
-        CourseRepository courseRepo = new InMemoryCourseRepository();
-        PaymentProcessor paymentProcessor = new PaymentServiceImpl();
-        NotificationService notificationService = new NotificationServiceImpl();
-        DiscountPolicy discountPolicy = new StudentDiscountPolicy();
 
-        // 2️⃣ — Создание сервисов
+        // Используем фабрику для создания платёжного процессора
+        PaymentProcessor paymentProcessor = PaymentProcessorFactory.createPaymentProcessor("PayPal");
+
+        // Используем фабрику для создания стратегии скидки
+        DiscountPolicy discountPolicy = new DiscountPolicyFactoryImpl().createDiscountPolicy("Student");
+
+        // Создание сервисов
+        CourseRepository courseRepo = new InMemoryCourseRepository();
+        NotificationService notificationService = new NotificationServiceImpl();
+
         CourseService courseService = new CourseService(courseRepo);
         EnrollmentService enrollmentService = new EnrollmentService(
                 courseRepo,
@@ -24,16 +29,16 @@ public class Main {
                 discountPolicy
         );
 
-        // 3️⃣ — Создание сущностей
+        // 2️⃣ — Создание сущностей
         Instructor instructor = new Instructor("Dr. Smith", "smith@edu.com");
         Course javaCourse = new Course("Java Fundamentals", "Learn Java from zero", 100.0, instructor.getId());
         Student student = new Student("Alice Johnson", "alice@mail.com");
 
-        // 4️⃣ — Добавление курса
+        // 3️⃣ — Добавление курса
         courseService.addCourse(javaCourse);
         Logger.info("Available courses: " + courseService.getAllCourses().size());
 
-        // 5️⃣ — Зачисление студента
+        // 4️⃣ — Зачисление студента
         enrollmentService.enrollStudent(student, javaCourse);
     }
 }
