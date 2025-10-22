@@ -27,5 +27,19 @@ public class Main {
         // Логирование для исходного и клонированного курса
         logger.log("Original Course Price: " + javaCourse.getPrice());  // 100.0
         logger.log("Cloned Course Price: " + clonedCourse.getPrice());  // 120.0
+
+         // Использование Bridge Pattern для обработки платёжей
+        // Используем Stripe для обработки платежей через Bridge
+        PaymentProcessor stripeProcessor = new StripePaymentProcessor();
+        PaymentBridge stripeBridge = new PaymentBridge(stripeProcessor);
+        stripeBridge.executePayment(200.0);
+
+        // Используем PayPal через Adapter (адаптируем интерфейс)
+        PayPalPaymentProcessor paypalProcessor = new PayPalPaymentProcessor();
+        PaymentProcessorAdapter paypalAdapter = new PaymentProcessorAdapter(paypalProcessor);
+        paypalAdapter.processPayment(150.0);
+
+        // Логирование для выполненных платежей
+        logger.log("Payments processed successfully.");
     }
 }
