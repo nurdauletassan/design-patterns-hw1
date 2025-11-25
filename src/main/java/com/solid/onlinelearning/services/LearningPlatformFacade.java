@@ -8,6 +8,9 @@ import com.solid.onlinelearning.models.Course;
 import com.solid.onlinelearning.models.Student;
 import com.solid.onlinelearning.repository.CourseRepositoryProxy;
 import com.solid.onlinelearning.repository.InMemoryCourseRepository;
+import com.solid.onlinelearning.services.chain.EnrollmentApprovalChainBuilder;
+import com.solid.onlinelearning.services.chain.EnrollmentHandler;
+import com.solid.onlinelearning.services.chain.EnrollmentRequest;
 
 /**
  * Facade that hides the orchestration of course creation, cloning, and enrollment.
@@ -77,6 +80,17 @@ public class LearningPlatformFacade {
                 notificationService,
                 discountPolicy
         );
-        enrollmentService.enrollStudent(student, course);
+        double discountedPrice = discountPolicy.applyDiscount(course.getPrice());
+
+        EnrollmentRequest request = new EnrollmentRequest(student, course, discountedPrice);
+        EnrollmentHandler approvalChain = new EnrollmentApprovalChainBuilder().buildDefault();
+        approvalChain.handle(request);
+
+        if (request.isRejected()) {
+            LoggerSingleton.getInstance().log("Enrollment rejected: " + request.getRejectionReason());
+            return;
+        }
+
+        enrollmentService.enrollStudentWithPrice(student, course, request.getPriceToCharge());
     }
 }

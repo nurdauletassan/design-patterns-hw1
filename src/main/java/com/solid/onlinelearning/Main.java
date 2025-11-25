@@ -14,6 +14,9 @@ import com.solid.onlinelearning.services.PayPalPaymentProcessor;
 import com.solid.onlinelearning.services.PaymentBridge;
 import com.solid.onlinelearning.services.PaymentProcessorAdapter;
 import com.solid.onlinelearning.services.StripePaymentProcessor;
+import com.solid.onlinelearning.services.command.CommandInvoker;
+import com.solid.onlinelearning.services.command.EnrollStudentCommand;
+import com.solid.onlinelearning.services.command.UpdateCoursePriceCommand;
 
 public class Main {
     public static void main(String[] args) {
@@ -40,6 +43,8 @@ public class Main {
         // Enroll with configurable discount and payment processor via the facade.
         Student student = new Student("Alice", "alice@example.com");
         facade.enrollStudent(student, javaCourse.getId(), "Student", "Stripe");
+        // Chain of Responsibility rejecting suspicious enrollment
+        facade.enrollStudent(new Student("Mallory", "fraudster@example.com"), javaCourse.getId(), "Student", "Stripe");
 
         // Flyweight pattern: lessons with identical intrinsic data reuse the same object.
         LearningComponentFactory componentFactory = new LearningComponentFactory();
@@ -50,6 +55,13 @@ public class Main {
         introLessonB.render("student-2", 85); // reused flyweight
         summary.render(student.getId(), 45);
         logger.log("Flyweight cache size: " + componentFactory.cachedFlyweightsCount());
+
+        // Command pattern: queue actions and support undo/redo.
+        CommandInvoker invoker = new CommandInvoker();
+        invoker.execute(new UpdateCoursePriceCommand(javaCourse, 95.0));
+        invoker.undoLast();
+        invoker.redoLast();
+        invoker.execute(new EnrollStudentCommand(facade, student, clonedCourse.getId(), "BlackFriday", "PayPal"));
 
         // Bridge + Adapter demonstrations remain available.
         PaymentProcessor stripeProcessor = new StripePaymentProcessor();

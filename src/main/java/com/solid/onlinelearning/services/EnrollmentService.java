@@ -23,7 +23,14 @@ public class EnrollmentService {
 
     public void enrollStudent(Student student, Course course) {
         double discountedPrice = discountPolicy.applyDiscount(course.getPrice());
-        boolean paid = paymentProcessor.processPayment(discountedPrice);
+        enrollStudentWithPrice(student, course, discountedPrice);
+    }
+
+    /**
+     * Variant used when the price is pre-approved via the chain of responsibility.
+     */
+    public void enrollStudentWithPrice(Student student, Course course, double priceToCharge) {
+        boolean paid = paymentProcessor.processPayment(priceToCharge);
 
         if (paid) {
             notificationService.sendNotification(
