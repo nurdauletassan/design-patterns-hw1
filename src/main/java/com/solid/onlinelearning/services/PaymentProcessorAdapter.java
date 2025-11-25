@@ -18,11 +18,14 @@ public class PaymentProcessorAdapter implements PaymentProcessor {
     }
 
     @Override
-    public void processPayment(double amount) {
+    public boolean processPayment(double amount) {
         if (stripeProcessor != null) {
-            stripeProcessor.processStripePayment(amount);
+            stripeProcessor.processPayment(amount);
+            return true;
         } else if (paypalProcessor != null) {
             paypalProcessor.processPayPalPayment(amount);
+            return true;
         }
+        return false;
     }
 }

@@ -1,10 +1,8 @@
 package com.solid.onlinelearning.models.content;
 
 /**
- * Component interface for course content tree.
+ * Flyweight interface describing learning content with shared intrinsic state.
  */
 public interface LearningComponent {
-    String getName();
-    int getDurationMinutes();
-    void print(String indent);
+    void render(String studentId, double progressPercentage);
 }

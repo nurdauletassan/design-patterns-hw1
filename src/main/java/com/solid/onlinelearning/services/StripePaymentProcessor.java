@@ -1,10 +1,12 @@
 package com.solid.onlinelearning.models;
 
+import com.solid.onlinelearning.interfaces.PaymentProcessor;
+
 public class StripePaymentProcessor implements PaymentProcessor {
 
     @Override
-    public void processPayment(double amount) {
+    public boolean processPayment(double amount) {
         System.out.println("Processing payment of $" + amount + " using Stripe.");
-        // Реализация логики обработки платежа через Stripe
+        return true;
     }
 }

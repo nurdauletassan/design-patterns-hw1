@@ -1,67 +1,65 @@
 package com.solid.onlinelearning;
 
+import com.solid.onlinelearning.interfaces.CourseRepository;
 import com.solid.onlinelearning.interfaces.PaymentProcessor;
 import com.solid.onlinelearning.models.Course;
-import com.solid.onlinelearning.models.content.Lesson;
-import com.solid.onlinelearning.models.content.Module;
-import com.solid.onlinelearning.models.content.Quiz;
-import com.solid.onlinelearning.services.CourseBuilder;
-import com.solid.onlinelearning.services.CoursePrototype;
-import com.solid.onlinelearning.services.FraudCheckPaymentDecorator;
-import com.solid.onlinelearning.services.LoggingPaymentDecorator;
+import com.solid.onlinelearning.models.Student;
+import com.solid.onlinelearning.models.content.LearningComponent;
+import com.solid.onlinelearning.models.content.LearningComponentFactory;
+import com.solid.onlinelearning.repository.CourseRepositoryProxy;
+import com.solid.onlinelearning.repository.DatabaseCourseRepository;
+import com.solid.onlinelearning.services.LearningPlatformFacade;
 import com.solid.onlinelearning.services.LoggerSingleton;
-import com.solid.onlinelearning.services.PaymentServiceImpl;
+import com.solid.onlinelearning.services.PayPalPaymentProcessor;
+import com.solid.onlinelearning.services.PaymentBridge;
+import com.solid.onlinelearning.services.PaymentProcessorAdapter;
+import com.solid.onlinelearning.services.StripePaymentProcessor;
 
 public class Main {
     public static void main(String[] args) {
 
-        // 1️⃣ — Создание исходного курса с использованием Builder
-        CourseBuilder builder = new CourseBuilder();
-        Course javaCourse = builder.setTitle("Java Fundamentals")
-                .setDescription("Learn Java from scratch")
-                .setPrice(100.0)
-                .setInstructorId("instructor1")
-                .build();
-
-        // Логирование с использованием Singleton
         LoggerSingleton logger = LoggerSingleton.getInstance();
-        logger.log("Course created: " + javaCourse.getTitle());
 
-        // 2️⃣ — Клонирование курса с использованием Prototype
-        CoursePrototype coursePrototype = new CoursePrototype();
-        Course clonedCourse = coursePrototype.cloneCourse(javaCourse);
-        clonedCourse.setPrice(120.0);  // Изменение цены для клона
+        // Facade wires together builders, prototype, discounts, payments, and notifications.
+        CourseRepository proxiedRepo = new CourseRepositoryProxy(new DatabaseCourseRepository());
+        LearningPlatformFacade facade = new LearningPlatformFacade(proxiedRepo);
 
-        logger.log("Original Course Price: " + javaCourse.getPrice());  // 100.0
-        logger.log("Cloned Course Price: " + clonedCourse.getPrice());  // 120.0
+        Course javaCourse = facade.publishCourse(
+                "Java Fundamentals",
+                "Learn Java from scratch",
+                100.0,
+                "instructor1"
+        );
+        Course clonedCourse = facade.duplicateCourse(javaCourse, 120.0);
+        logger.log("Facade created courses: original=" + javaCourse.getPrice() + ", clone=" + clonedCourse.getPrice());
 
-        // 3️⃣ — Decorator: динамическое расширение логики оплаты
-        PaymentProcessor basePaymentProcessor = new PaymentServiceImpl();
-        PaymentProcessor securedProcessor = new LoggingPaymentDecorator(
-                new FraudCheckPaymentDecorator(basePaymentProcessor, 500.0));
+        // Proxy pattern: repeated access goes through cache inside CourseRepositoryProxy.
+        proxiedRepo.getCourseById(javaCourse.getId());
+        proxiedRepo.getCourseById(javaCourse.getId()); // served from cache
 
-        securedProcessor.processPayment(350.0); // пройдет фрод-проверку
-        securedProcessor.processPayment(1200.0); // заблокируется декоратором FraudCheck
+        // Enroll with configurable discount and payment processor via the facade.
+        Student student = new Student("Alice", "alice@example.com");
+        facade.enrollStudent(student, javaCourse.getId(), "Student", "Stripe");
 
-        // 4️⃣ — Composite: дерево учебных модулей
-        Module rootPath = new Module("Java Fundamentals Path");
+        // Flyweight pattern: lessons with identical intrinsic data reuse the same object.
+        LearningComponentFactory componentFactory = new LearningComponentFactory();
+        LearningComponent introLessonA = componentFactory.getLesson("Intro to SOLID", "video", 12);
+        LearningComponent introLessonB = componentFactory.getLesson("Intro to SOLID", "video", 12);
+        LearningComponent summary = componentFactory.getLesson("Patterns Recap", "article", 5);
+        introLessonA.render(student.getId(), 10);
+        introLessonB.render("student-2", 85); // reused flyweight
+        summary.render(student.getId(), 45);
+        logger.log("Flyweight cache size: " + componentFactory.cachedFlyweightsCount());
 
-        Module basics = new Module("Java Basics");
-        basics.add(new Lesson("Syntax and Types", 45));
-        basics.add(new Lesson("Control Flow", 35));
-        basics.add(new Quiz("Basics Quiz", 15));
+        // Bridge + Adapter demonstrations remain available.
+        PaymentProcessor stripeProcessor = new StripePaymentProcessor();
+        PaymentBridge stripeBridge = new PaymentBridge(stripeProcessor);
+        stripeBridge.executePayment(200.0);
 
-        Module oop = new Module("Object-Oriented Programming");
-        oop.add(new Lesson("Classes and Objects", 40));
-        oop.add(new Lesson("Inheritance and Interfaces", 50));
-        oop.add(new Quiz("OOP Quiz", 20));
+        PayPalPaymentProcessor paypalProcessor = new PayPalPaymentProcessor();
+        PaymentProcessorAdapter paypalAdapter = new PaymentProcessorAdapter(paypalProcessor);
+        paypalAdapter.processPayment(150.0);
 
-        rootPath.add(basics);
-        rootPath.add(oop);
-        rootPath.add(new Lesson("Collections Overview", 30));
-
-        System.out.println("--- Course Content Structure (Composite) ---");
-        rootPath.print("");
-        logger.log("Total duration for path: " + rootPath.getDurationMinutes() + " minutes");
+        logger.log("Platform flow completed.");
     }
 }
